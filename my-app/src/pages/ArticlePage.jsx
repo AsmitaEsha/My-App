@@ -7,14 +7,16 @@ import Comment from "../components/Comment";
 const COMMENTS_PER_PAGE = 2;
 
 export default function ArticlePage() {
+  // Post reactions: only one can be chosen per user (no toggle)
   const [postReaction, setPostReaction] = useState(null);
   const [postReactions, setPostReactions] = useState({
-    like: 42,
-    love: 156,
-    angry: 8,
-    sad: 12
+    like: 10,
+    love: 7,
+    angry: 0,
+    sad: 0
   });
 
+  // Comments and their reactions state
   const [comments, setComments] = useState(PAGES[0].comments);
   const [commentReactions, setCommentReactions] = useState(() =>
     Object.fromEntries(
@@ -24,8 +26,17 @@ export default function ArticlePage() {
       ])
     )
   );
+  // Each comment's active reaction (only one allowed)
+  const [activeCommentReactions, setActiveCommentReactions] = useState(() =>
+    Object.fromEntries(
+      PAGES[0].comments.map((c) => [
+        c.id,
+        null // Only one active key, or null
+      ])
+    )
+  );
 
-  // Pagination for comments
+  // Paginate comments
   const [commentPage, setCommentPage] = useState(1);
   const totalCommentPages = Math.ceil(comments.length / COMMENTS_PER_PAGE);
   const shownComments = comments.slice(
@@ -71,20 +82,22 @@ export default function ArticlePage() {
         year: "numeric"
       }),
       text: text,
-      reactionCounts: { like: 0, love: 0, angry: 0, sad: 0 },
-      likes: 0,
-      dislikes: 0
+      reactionCounts: { like: 0, love: 0, angry: 0, sad: 0 }
     };
     setComments(prev => [...prev, newCommentObj]);
     setCommentReactions(prev => ({
       ...prev,
       [newCommentObj.id]: { ...newCommentObj.reactionCounts }
     }));
+    setActiveCommentReactions(prev => ({
+      ...prev,
+      [newCommentObj.id]: null
+    }));
     setNewComment("");
     setCommentPage(Math.ceil((comments.length + 1) / COMMENTS_PER_PAGE));
   }
 
-  // Post reactions: only one can be chosen per user
+  // Post reactions: only one can be chosen per user (no toggle)
   const handlePostReaction = (r) => {
     if (!postReaction) {
       setPostReaction(r);
@@ -95,15 +108,24 @@ export default function ArticlePage() {
     }
   };
 
-  // Comment reactions: increase count, unclick does nothing
+  // Comment reactions: only one allowed, toggle logic
   const handleCommentReaction = (commentId, key) => {
-    setCommentReactions((prev) => ({
-      ...prev,
-      [commentId]: {
-        ...prev[commentId],
-        [key]: prev[commentId][key] + 1
+    setCommentReactions(prev => {
+      const currentActive = activeCommentReactions[commentId];
+      let updated = { ...prev[commentId] };
+      if (currentActive === key) {
+        // Toggle off (decrement)
+        updated[key] = Math.max(0, updated[key] - 1);
+        setActiveCommentReactions(acr => ({ ...acr, [commentId]: null }));
+      } else {
+        // If another reaction was active, decrement it
+        if (currentActive) updated[currentActive] = Math.max(0, updated[currentActive] - 1);
+        // Activate new reaction
+        updated[key] = updated[key] + 1;
+        setActiveCommentReactions(acr => ({ ...acr, [commentId]: key }));
       }
-    }));
+      return { ...prev, [commentId]: updated };
+    });
   };
 
   return (
@@ -170,6 +192,7 @@ export default function ArticlePage() {
         }}>
           {ARTICLE.body}
         </article>
+        {/* Post reactions */}
         <ReactionGroup
           value={postReaction}
           onChange={handlePostReaction}
@@ -226,6 +249,7 @@ export default function ArticlePage() {
                 reactionCounts: commentReactions[c.id],
                 index: (commentPage - 1) * COMMENTS_PER_PAGE + idx
               }}
+              activeReaction={activeCommentReactions[c.id]}
               onReaction={key => handleCommentReaction(c.id, key)}
             />
           ))}

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import ReactionGroup from "./ReactionGroup";
 
-export default function Comment({ data, onReaction }) {
+export default function Comment({ data, onReaction, activeReaction }) {
   const {
     author,
     authorId,
@@ -13,27 +13,6 @@ export default function Comment({ data, onReaction }) {
     reactionCounts,
     index
   } = data;
-
-  // Local reaction state for immediate UI update
-  const [localReactions, setLocalReactions] = useState({ ...reactionCounts });
-  const [activeReactions, setActiveReactions] = useState({
-    like: false,
-    love: false,
-    angry: false,
-    sad: false
-  });
-
-  function handleReaction(key) {
-    setLocalReactions(prev => ({
-      ...prev,
-      [key]: activeReactions[key] ? prev[key] - 1 : prev[key] + 1
-    }));
-    setActiveReactions(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-    if (onReaction) onReaction(key);
-  }
 
   return (
     <div className="comment comment-blue">
@@ -64,13 +43,13 @@ export default function Comment({ data, onReaction }) {
         </div>
         <ReactionGroup
           compact
-          reactionCounts={localReactions}
-          activeReactions={activeReactions}
-          onCommentReaction={handleReaction}
+          reactionCounts={reactionCounts}
+          activeCommentReaction={activeReaction}
+          onCommentReaction={onReaction}
           showPercents={false}
         />
         <div className="comment-reaction-counts">
-          Like: {localReactions.like} &nbsp; Love: {localReactions.love} &nbsp; Angry: {localReactions.angry} &nbsp; Sad: {localReactions.sad}
+          Like: {reactionCounts.like} &nbsp; Love: {reactionCounts.love} &nbsp; Angry: {reactionCounts.angry} &nbsp; Sad: {reactionCounts.sad}
         </div>
       </div>
     </div>
